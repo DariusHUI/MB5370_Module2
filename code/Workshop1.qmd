@@ -47,4 +47,15 @@ source("Workshop1.R")
 ```
 
 
+## 1.9 Integrating data grammar with visual diagnostics in qmd
+
+###1.9.1 Wrangling and Plotting in Parallel
+
+```{r Wrangling and Plotting in Parallel}
+
+```
+
+
+
+
 
