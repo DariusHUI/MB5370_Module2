@@ -51,14 +51,18 @@ library(ggplot2)
 
 ## Load datasets
 ```{r Load datasets}
-catch_1 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 1)
-catch_1
-catch_2 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 2)
-catch_2
-catch_3 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 3)
-catch_3
-catch_4 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 4)
-catch_4
+catch_site1 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 1)
+catch_site1
+catch_site2 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 2)
+catch_site2
+catch_site3 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 3)
+catch_site3
+catch_site4 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 4)
+catch_site4
+
+catch_log <- bind_rows(catch_site1, catch_site2, catch_site3,catch_site4)
+catch_log
+
 metadata <- read_csv("../data/workshop2/estuary_metadata.csv")
 metadata
 sonde_data <- read_csv("../data/workshop2/estuary_sonde_data.csv")
@@ -66,13 +70,59 @@ sonde_data
 species_dictionary <- read_csv("../data/workshop2/species_dictionary.csv")
 species_dictionary
 ```
-Excel Tab Iteration: The catch log is split across multiple tabs (one for each site). You will need to figure out how to read all tabs and bind them together into a single data frame.
-```{r Excel Tab Iteration}
-# Bind the four catch data sheets (catch1, catch2, catch3 & catch4) together
-all_catch <- 
+
+### catch_log
+```{r catch_log Ingestion and Decontamination}
+# Investigate dataset catch_log
+catch_log
+head(catch_log)
+glimpse(catch_log)
+str(catch_log)
+```
+
+```{r catch_log Ingestion and Decontamination}
+# Standardise the site and species names to lowercase with underscores
+clean_catch_log <- catch_log |>
+  mutate(
+    #site names
+    # 1. Make sure all site names are in lowercase
+    site = str_to_lower(site),
+    # 2. Trim any leading or trailing whitespace (invisible spaces at the ends)
+    site = str_trim(site),
+    # 3. Replace any spaces with underscores
+    site = str_replace_all(site, pattern = " ", replacement = "_"),
+    #species names
+    # 1. Make sure all site names are in lowercase
+    species = str_to_lower(species),
+    # 2. Trim any leading or trailing whitespace (invisible spaces at the ends)
+    species = str_trim(species),
+    # 3. Replace any spaces with underscores
+    species = str_replace_all(species, pattern = " ", replacement = "_")
+      )
+print(clean_catch_log)
+```
+
+###sonde_data
+```{r sonde_data Ingestion and Decontamination}
+# Investigate dataset catch_log
+sonde_data
+head(sonde_data)
+glimpse(sonde_data)
+str(sonde_data)
+```
+
+```{r sonde_data Temporal Parsing & Hardware Error}
+# Parse dates into formal Date-Time objects
+clean_sonde_data <- sonde_data |>
+  mutate(
+    # Parse dates into formal Date-Time objects
+    timestamp = dmy_hm(timestamp),
+    # Convert the -999 error codes to true NA values in the turbidity column
+    turbidity = na_if(turbidity, -999)
+  )
+clean_sonde_data
 ```
 
 
-
-
+# Phase 2: The Relational Architecture
 
