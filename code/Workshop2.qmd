@@ -39,6 +39,9 @@ rm(list=ls())
 ## Load packages
 ```{r packages, message=FALSE, warning=FALSE, include=FALSE}
 library(tidyverse)
+library(lubridate)
+library(palmerpenguins)
+library(ggplot2)
 ```
 
 
@@ -66,7 +69,6 @@ table1 %>%
   count(year, wt = cases)
 
 # Visualise changes over time
-library(ggplot2)
 ggplot(table1, aes(year, cases)) + 
   geom_line(aes(group = country), colour = "grey50") + 
   geom_point(aes(colour = country))
@@ -182,6 +184,309 @@ df |>
   distinct() |> 
   mutate(x = NA, y = NA, z = NA)
 ```
+
+#2.6 Pivoting Exercise using Palmer Penguins
+
+```{r Lengthening data with pivot_longer()}
+# Create a long version of the penguins dataset
+
+penguins_long <- penguins |>
+  pivot_longer(
+    cols = c(bill_length_mm, bill_depth_mm, flipper_length_mm, body_mass_g),
+    names_to = "measurement_type",
+    values_to = "value"
+  )
+# View the result
+head(penguins_long)
+
+# Visualise the distribution of measurements across species
+penguins_long |>
+  drop_na(value) |>
+  ggplot(aes(x = value, fill = species)) +
+  geom_histogram(bins = 30, alpha = 0.7, colour = "black") +
+  facet_wrap(~ measurement_type, scales = "free_x") +
+  theme_minimal() +
+  labs(
+    title = "Morphometric distributions across penguin species",
+    x = "Measurement value",
+    y = "Frequency"
+  )
+```
+
+```{r Widening data with pivot_wider()}
+# Create a wide version of the penguins dataset
+mass_summary <- penguins |>
+  drop_na(body_mass_g) |>
+  group_by(species, island) |>
+  summarise(mean_mass = mean(body_mass_g))
+
+head(mass_summary)
+
+# Pivot to wide format to create a matrix of mean body mass by species and island
+mass_matrix <- mass_summary |>
+  pivot_wider(
+    names_from = island,
+    values_from = mean_mass
+  )
+
+head(mass_matrix)
+```
+
+
+#2.7 Separating and uniting data tables
+
+```{r Separating and uniting data tables}
+table3
+
+# Separate the 'rate' column into 'cases' and 'population'
+table3 %>% 
+  separate(rate, into = c("cases", "population"))
+
+# Separate the 'rate' column into 'cases' and 'population', converting to numeric
+table3 %>% 
+  separate(rate, into = c("cases", "population"), sep = "/")
+
+# Separate the 'rate' column into 'cases' and 'population', converting to numeric
+table3 %>% 
+  separate(rate, into = c("cases", "population"), convert = TRUE)
+
+# Separate the 'year' column into 'century' and 'year'
+table3 %>% 
+  separate(year, into = c("century", "year"), sep = 2)
+
+# Separate the 'year' column into 'century' and 'year', converting to numeric
+table5 %>% 
+  unite(new, century, year, sep = "")
+```
+
+
+#2.8 Wrangling strings and dates
+
+```{r Standardising text with stringr}
+# A remarkably messy data frame of field sites
+messy_sites <- tibble(
+  site_id = c(" Nelly Bay", "nelly_bay", "NELLY BAY", " Geoffrey_Bay ", "geoffrey bay")
+)
+
+# Using stringr within mutate to standardize the text
+clean_sites <- messy_sites |>
+  mutate(
+    # 1. Convert everything to lowercase
+    site_clean = str_to_lower(site_id),
+    # 2. Trim any leading or trailing whitespace (invisible spaces at the ends)
+    site_clean = str_trim(site_clean),
+    # 3. Replace any spaces with underscores
+    site_clean = str_replace_all(site_clean, pattern = " ", replacement = "_")
+  )
+
+print(clean_sites)
+
+```
+
+```{r Mastering time with lubridate}
+# Parsing different date formats
+date_1 <- dmy("25/12/2026")
+date_2 <- ymd("2026-12-25")
+
+# R now recognizes these as identical Date objects
+date_1 == date_2
+
+# A tibble of raw sensor data with a messy character timestamp
+sensor_data <- tibble(
+  raw_time = c("14-05-2026 08:30:00", "14-05-2026 08:45:00", "14-05-2026 09:00:00"),
+  temperature = c(24.5, 24.6, 24.4)
+)
+
+# Converting character strings to true POSIXct datetime objects
+sensor_clean <- sensor_data |>
+  mutate(
+    true_time = dmy_hms(raw_time)
+  )
+
+print(sensor_clean)
+```
+
+#2.9 Relational data: Joining tables
+
+```{r Relational data: Joining tables}
+# Table 1: Biological observation data
+observations <- tibble(
+  site_code = c("NB", "GB", "MI", "NB", "HB"),
+  species = c("Trout", "Snapper", "Trout", "Cod", "Trout"),
+  count = c(5, 2, 1, 3, 8)
+)
+
+# Table 2: Spatial metadata
+site_metadata <- tibble(
+  site_code = c("NB", "GB", "MI", "RP", "WP"),
+  zone = c("Marine National Park", "Conservation Park", "Habitat Protection", "General Use", "Other Use"),
+  lat = c(-19.16, -19.15, -19.14, -19.12, -19.11)
+)
+```
+
+```{r The workhorse: left_join()}
+# Joining metadata to our observations
+joined_data <- observations |>
+  left_join(site_metadata, by = join_by(site_code))
+
+print(joined_data)
+```
+
+```{r The strict filter: inner_join()}
+# Joining metadata to our observations, but only keeping rows with matches in both tables
+matched_data <- observations |>
+  inner_join(site_metadata, by = join_by(site_code))
+glimpse(matched_data)
+```
+
+```{r The detective: anti_join()}
+# Which observations are missing from our metadata dictionary?
+missing_context <- observations |>
+  anti_join(site_metadata, by = join_by(site_code))
+missing_context
+```
+
+
+#2.10 Handling missing values
+
+```{r Converting legacy errors with na_if()}
+# Raw data from an old temperature logger
+logger_data <- tibble(
+  depth_m = c(10, 20, 30, 40),
+  temp_c = c(24.5, 24.1, -999, 23.5)) # -999 is a known sensor error code
+
+# Convert the -999 error codes to true NA values
+fixed_logger <- logger_data |>
+  mutate(temp_c = na_if(temp_c, -999))
+
+print(fixed_logger)
+```
+
+```{r Replacing missing values with coalesce()}
+# Simulate some count data
+shark_counts <- tibble(
+  site = c("Reef_A", "Reef_B", "Reef_C"),
+  shark_count = c(3, NA, 5)) # The NA here actually means 0 sharks were seen
+
+# Replace NA with 0 
+shark_fixed <- shark_counts |>
+  mutate(shark_count = coalesce(shark_count, 0))
+
+print(shark_fixed)
+```
+
+```{r The special case of NaN (Not a Number)}
+cpue_data <- tibble(
+  site = c("Bay_1", "Bay_2"),
+  catch = c(10, 0),
+  effort_hours = c(2, 0))
+
+# Calculating CPUE (catch / effort)
+cpue_calc <- cpue_data |>
+  mutate(
+    cpue = catch / effort_hours)
+
+print(cpue_calc)
+```
+
+```{r Implicit missing values and the zero-data framework: complete()}
+raw_catch <- tibble(
+  site = c("Reef_1", "Reef_1", "Reef_2"),
+  species = c("Pmaculatus", "Pleopardus", "Pmaculatus"),
+  count = c(5, 2, 8)) 
+
+# Force inclusion of hidden zero-catch data
+full_catch_matrix <- raw_catch |>
+  complete(site, species, fill = list(count = 0))
+
+print(full_catch_matrix)
+```
+
+```{r The nuclear option: drop_na()}
+sensor_log <- tibble(
+  day = 1:4,
+  salinity = c(35.2, 35.1, NA, 35.3)
+)
+
+# Remove any row where salinity is missing
+clean_log <- sensor_log |>
+  drop_na(salinity) 
+print(clean_log)
+```
+
+
+#2.11 Practical Exercises: Penguins, Pivots, and Relational Data
+
+##Exercise 1: Cleaning the messy metadata
+Task: Create a new object called clean_metadata. Using mutate(), stringr, and lubridate, fix the island_name column so that it perfectly matches the island column in the penguins dataset (hint: watch out for those hidden spaces!). Then, convert the station_install column into a proper Date object.
+
+```{r Ex1: Cleaning the messy metadata}
+# The messy metadata provided by your colleague
+island_metadata <- tibble(
+  island_name = c(" biscoe", "Dream ", "Torgersen"),
+  station_install = c("15/01/2003", "22-03-2004", "05/11/2001"),
+  latitude = c(-64.81, -64.73, -64.76)
+)
+
+print(island_metadata)
+
+print(penguins)
+
+# Use mutate, stringr, and lubridate to clean the data
+clean_metadata <- island_metadata |>
+  mutate(
+    # 1. Make sure all island names start with a capital letter, and the rest are lowercase
+    island_name = str_to_title(island_name),
+    # 2. Trim any leading or trailing whitespace (invisible spaces at the ends)
+    island_name = str_trim(island_name),
+    # 3. Convert station_install to Date forma
+    station_install = dmy(station_install)
+      )
+
+print(clean_metadata)
+```
+
+##Exercise 2: The Relational Join
+Task: Create a new object called penguins_spatial. Use a left_join() to attach your clean_metadata to the main penguins dataset. Hint: Because the column containing the island names is called island in the penguins dataset, and island_name in your metadata, you will need to specify how they match using by = join_by(island == island_name).
+
+```{r Ex2: The Relational Join}
+penguins_spatial <- penguins |>
+  left_join(clean_metadata, by = join_by(island == island_name))
+
+# Scroll to the right to see the new columns
+head(penguins_spatial)
+```
+
+##Exercise 3: The Wide Summary Matrix
+Task: Starting with your penguins_spatial dataset:
+Drop any missing values in the body_mass_g column.
+  1. Group by species and island.
+  2. Summarise the data to find the maximum body mass (max()).
+  3. Pivot the dataset wider so that the species form the rows, and the islands form the columns.
+
+```{r Ex3: The Wide Summary Matrix}
+# Create a wide summary matrix of maximum body mass by species and island
+penguins_summary <- penguins_spatial |>
+  # drop any missing values in the body_mass_g column
+  drop_na(body_mass_g) |>
+  # group by species and island
+  group_by(species, island) |>
+  # summarise the data to find the maximum body mass (max())
+  summarise(max_mass = max(body_mass_g)) |>
+  pivot_wider(
+    names_from = island,
+    values_from = max_mass
+  )
+
+print(penguins_summary)
+```
+
+
+
+
+
+
+
 
 
 
