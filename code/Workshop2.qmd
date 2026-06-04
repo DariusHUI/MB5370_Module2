@@ -1,0 +1,189 @@
+---
+title: "R for Marine Science Workshop 2"
+author: "Darius HUISMAN"
+date: "2026-06-04"
+output: 
+ html_document:
+    code_folding: show
+    collapse: no
+    df_print: paged
+    fig_caption: yes
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    theme: spacelab
+    toc: yes
+    toc_float: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+# Set options, housekeeping
+knitr::opts_chunk$set(
+	echo = FALSE,
+	include = TRUE,
+	message = FALSE,
+	warning = FALSE)
+```
+
+## Introduction
+THis qmd file covers...
+
+## Clear out environment
+
+```{r housekeeping message=FALSE, warning=FALSE, include=FALSE}
+rm(list=ls())
+```
+
+## Load packages
+```{r packages, message=FALSE, warning=FALSE, include=FALSE}
+library(tidyverse)
+```
+
+
+#2.2 Tidying data
+
+```{r explore table1 table2 and table3}
+table1 <- table1
+table1
+
+table2 <- table2
+table2
+
+table3 <- table3
+table3
+
+```
+
+```{r Tidy table1 and visualise data}
+# Compute rate per 10,000
+table1 %>% 
+  mutate(rate = cases / population * 10000)
+
+# Compute cases per year
+table1 %>% 
+  count(year, wt = cases)
+
+# Visualise changes over time
+library(ggplot2)
+ggplot(table1, aes(year, cases)) + 
+  geom_line(aes(group = country), colour = "grey50") + 
+  geom_point(aes(colour = country))
+```
+
+#2.3 Pivoting data to make it tidy
+
+#2.4 Lengthening datasets
+
+```{r pivotlonger()}
+table4 <- table4a
+table4
+
+pivot_longer(table4, c("1999", "2000"), names_to = "year", values_to = "cases")
+```
+
+```{r billboard, pivotlonger()}
+billboard <- billboard
+billboard
+# Pivot to tidy format
+billboard |> 
+  pivot_longer(
+    cols = starts_with("wk"), 
+    names_to = "week", 
+    values_to = "rank"
+  )
+
+# Pivot to tidy format, dropping NAs  
+billboard |> 
+  pivot_longer(
+    cols = starts_with("wk"), 
+    names_to = "week", 
+    values_to = "rank",
+    values_drop_na = TRUE
+  )
+```
+
+```{r Pivoting longer example}
+# Create a simple data frame
+df <- tribble(
+  ~id,  ~bp1, ~bp2,
+   "A",  100,  120,
+   "B",  140,  115,
+   "C",  120,  125
+)
+
+# Pivot to tidy format
+df |> 
+  pivot_longer(
+    cols = bp1:bp2,
+    names_to = "measurement",
+    values_to = "value"
+  )
+```
+
+
+#2.5 Widening datasets
+
+```{r widening datasets}
+cms_patient_experience
+
+# See complete set of values
+cms_patient_experience |> 
+  distinct(measure_cd, measure_title)
+
+# Pivot to wide format
+cms_patient_experience |> 
+  pivot_wider(
+    names_from = measure_cd,
+    values_from = prf_rate
+  )
+
+# Pivot to wide format, keeping org variables
+cms_patient_experience |> 
+  pivot_wider(
+    id_cols = starts_with("org"),
+    names_from = measure_cd,
+    values_from = prf_rate
+  )
+```
+
+```{r Pivoting wider - example}
+# Create a simple data frame
+df <- tribble(
+  ~id, ~measurement, ~value,
+  "A",        "bp1",    100,
+  "B",        "bp1",    140,
+  "B",        "bp2",    115, 
+  "A",        "bp2",    120,
+  "A",        "bp3",    105
+)
+
+# Pivot to wide format 
+df |> 
+  pivot_wider(
+    names_from = measurement,
+    values_from = value
+  )
+
+# Pivot to wide format, keeping id variable
+df |> 
+  distinct(measurement) |> 
+  pull()
+
+# Pivot to wide format, keeping id variable and dropping measurement variable
+df |> 
+  select(-measurement, -value) |> 
+  distinct()
+
+# Pivot to wide format, keeping id variable and dropping measurement variable, and adding new variables
+df |> 
+  select(-measurement, -value) |> 
+  distinct() |> 
+  mutate(x = NA, y = NA, z = NA)
+```
+
+
+
+
+
