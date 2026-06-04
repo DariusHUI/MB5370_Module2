@@ -1,0 +1,78 @@
+---
+title: "R for Marine Science Workshop 2 Exercise 2.12"
+author: "Darius HUISMAN"
+date: "2026-06-04"
+output: 
+ html_document:
+    code_folding: show
+    collapse: no
+    df_print: paged
+    fig_caption: yes
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    theme: spacelab
+    toc: yes
+    toc_float: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+# Set options, housekeeping
+knitr::opts_chunk$set(
+	echo = FALSE,
+	include = TRUE,
+	message = FALSE,
+	warning = FALSE)
+```
+
+# Introduction
+This qmd file covers the following point 12 (Keystone exercise: Estuary Fish Survey - Data Rescue Mission) of Workshop 2 of the R for Marine Science Module.
+
+The goal is to write a single, reproducible R script (or .qmd) that ingests this mess, cleans it, joins it into a single master dataset, and produces a publication-ready visualisation of the estuary's ecology.
+
+## Clear out environment
+
+```{r housekeeping message=FALSE, warning=FALSE, include=FALSE}
+rm(list=ls())
+```
+
+## Load packages
+Load the packages necessary to this project
+```{r packages, message=FALSE, warning=FALSE, include=FALSE}
+library(tidyverse)
+library(lubridate)
+library(readxl)
+library(ggplot2)
+```
+
+# Phase 1: Ingestion and Decontamination
+
+## Load datasets
+```{r Load datasets}
+catch_1 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 1)
+catch_1
+catch_2 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 2)
+catch_2
+catch_3 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 3)
+catch_3
+catch_4 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 4)
+catch_4
+metadata <- read_csv("../data/workshop2/estuary_metadata.csv")
+metadata
+sonde_data <- read_csv("../data/workshop2/estuary_sonde_data.csv")
+sonde_data
+species_dictionary <- read_csv("../data/workshop2/species_dictionary.csv")
+species_dictionary
+```
+Excel Tab Iteration: The catch log is split across multiple tabs (one for each site). You will need to figure out how to read all tabs and bind them together into a single data frame.
+```{r Excel Tab Iteration}
+# Bind the four catch data sheets (catch1, catch2, catch3 & catch4) together
+all_catch <- 
+```
+
+
+
+
+

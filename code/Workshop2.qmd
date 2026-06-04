@@ -28,7 +28,16 @@ knitr::opts_chunk$set(
 ```
 
 ## Introduction
-THis qmd file covers...
+This qmd file covers the following topics for Workshop 2 of the R for Marine Science Module:
+1. Tidying data
+2. Pivoting data to make it tidy
+3. Lengthening datasets
+4. Widening datasets
+5. Separating and uniting data tables
+6. Wrangling strings and dates
+7. Relational data: Joining tables
+8. Handling missing values
+9. Practical exercises: Penguins, pivots, and relational data
 
 ## Clear out environment
 
