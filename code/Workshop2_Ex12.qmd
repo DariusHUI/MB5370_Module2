@@ -126,3 +126,60 @@ clean_sonde_data
 
 # Phase 2: The Relational Architecture
 
+##Summarise the water sensor data
+```{r Summarise the water sensor data}
+#Create a summary table with daily mean temperature and salinity for each site
+summary_sensor_data <- clean_sonde_data |>
+  group_by(site, floor_date(timestamp, unit = "day")) |>
+  summarise(mean_salinity = mean(salinity), mean_turbidity = mean(na.omit(turbidity))) #remove NAs from the mean calcul for daily tubidity
+summary_sensor_data
+```
+
+##Taxonomic Translation
+```{r Taxonomic Translation}
+# Use a mutating join to merge your species_dictionary into your catch data, replacing the common names with accurate scientific taxonomy.
+catch_scientific_name <- clean_catch_log |>
+  # Join a column with adequate scientific name for each observation in clean_catch_log
+  left_join(species_dictionary, by = join_by("species" == "common_name")) |>
+  # Replace the common names by the scientific names in the 'species' column
+  mutate(
+    species = scientific_name
+  ) |>
+  # Remove the 'scientific_name' column
+  select(-scientific_name)
+catch_scientific_name
+```
+
+## The Grand Join
+Merge translated catch data, your spatial metadata, and your daily water quality summaries into a single master data frame.
+ 
+```{r The Grand Join part1 - metadata site names standarisation and remane column with date in summary_sensor_data}
+# celan metadata
+clean_metadata <- metadata |>
+  mutate(
+    # 1. Make sure all site names are in lowercase
+    site_name = str_to_lower(site_name),
+    # 2. Trim any leading or trailing whitespace (invisible spaces at the ends)
+    site_name = str_trim(site_name),
+    # 3. Replace any spaces with underscores
+    site_name = str_replace_all(site_name, pattern = " ", replacement = "_")
+  )
+clean_metadata
+
+#summary_sensor_data date column change (necessary for later step)
+colnames(summary_sensor_data)[2] <- "date"
+summary_sensor_data
+```
+
+```{r The Grand Join part2 - Merge all dfs}
+master_df <- catch_scientific_name |>
+  # Merge catch_scientific_name and clean_metadata by the site names
+  left_join(clean_metadata, by = join_by("site" == "site_name")) |>
+  # Merge summary_sensor_data to the previous merge df, by site and date
+  left_join(summary_sensor_data, by = join_by(site, date))
+master_df
+```
+
+
+
+
