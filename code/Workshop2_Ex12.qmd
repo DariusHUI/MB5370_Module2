@@ -28,6 +28,7 @@ knitr::opts_chunk$set(
 ```
 
 # Introduction
+
 This qmd file covers the following point 12 (Keystone exercise: Estuary Fish Survey - Data Rescue Mission) of Workshop 2 of the R for Marine Science Module.
 
 The goal is to write a single, reproducible R script (or .qmd) that ingests this mess, cleans it, joins it into a single master dataset, and produces a publication-ready visualisation of the estuary's ecology.
@@ -39,7 +40,9 @@ rm(list=ls())
 ```
 
 ## Load packages
+
 Load the packages necessary to this project
+
 ```{r packages, message=FALSE, warning=FALSE, include=FALSE}
 library(tidyverse)
 library(lubridate)
@@ -50,6 +53,7 @@ library(ggplot2)
 # Phase 1: Ingestion and Decontamination
 
 ## Load datasets
+
 ```{r Load datasets}
 catch_site1 <- read_excel("../data/workshop2/estuary_catch_log.xlsx", sheet = 1)
 catch_site1
@@ -72,6 +76,7 @@ species_dictionary
 ```
 
 ### catch_log
+
 ```{r catch_log Ingestion and Decontamination}
 # Investigate dataset catch_log
 catch_log
@@ -103,6 +108,7 @@ print(clean_catch_log)
 ```
 
 ###sonde_data
+
 ```{r sonde_data Ingestion and Decontamination}
 # Investigate dataset catch_log
 sonde_data
@@ -123,10 +129,10 @@ clean_sonde_data <- sonde_data |>
 clean_sonde_data
 ```
 
-
 # Phase 2: The Relational Architecture
 
 ##Summarise the water sensor data
+
 ```{r Summarise the water sensor data}
 #Create a summary table with daily mean temperature and salinity for each site
 summary_sensor_data <- clean_sonde_data |>
@@ -136,6 +142,7 @@ summary_sensor_data
 ```
 
 ##Taxonomic Translation
+
 ```{r Taxonomic Translation}
 # Use a mutating join to merge your species_dictionary into your catch data, replacing the common names with accurate scientific taxonomy.
 catch_scientific_name <- clean_catch_log |>
@@ -151,8 +158,9 @@ catch_scientific_name
 ```
 
 ## The Grand Join
+
 Merge translated catch data, your spatial metadata, and your daily water quality summaries into a single master data frame.
- 
+
 ```{r The Grand Join part1 - metadata site names standarisation and remane column with date in summary_sensor_data}
 # celan metadata
 clean_metadata <- metadata |>
@@ -181,5 +189,52 @@ master_df
 ```
 
 
+# Phase 3: The Zero-Catch Framework
 
+```{r build zero-data framework}
+# Use tidyr::complete() to build a zero-data framework, filling in any missing combinations of site, date, and species with a catch value of 0.
+tidy_master_df <- master_df |>
+  complete(site, date, species, fill = list(catch = 0))
+tidy_master_df
+
+# Replace NAs in count column with 0s with coalesce() function
+tidy_master_df <- tidy_master_df |>
+  mutate(count = coalesce(count, 0))
+tidy_master_df
+```
+
+# Phase 4: Statistical Extraction
+
+```{r Statistical Extraction}
+# From your master dataset, generate a clean summary table showing the mean ± standard error of both the fish catch (count) and the salinity for each scientific species across each estuary zone.
+summary_table <- tidy_master_df |>
+  group_by(zone, species) |>
+  summarise(
+    mean_catch = mean(count),
+    se_catch = sd(count) / sqrt(n()),
+    mean_salinity = mean(mean_salinity, na.rm = TRUE),
+    se_salinity = sd(mean_salinity, na.rm = TRUE) / sqrt(sum(!is.na(mean_salinity))) 
+  )
+summary_table
+```
+
+# Phase 5: Visual Communication
+
+```{r Visual Communication}
+# Create a multi-panel plot using ggplot2 and facet_wrap() to visualise how the abundance of different species changes along the salinity gradient.
+ggplot(summary_table, aes(x = mean_salinity, y = mean_catch)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = mean_catch - se_catch, ymax = mean_catch + se_catch), width = 0.2) +
+  facet_wrap(~ species) + # Create a separate panel for each species
+  labs(
+    title = "Mean Fish Catch vs Mean Salinity",
+    x = "Mean Salinity (ppt)",
+    y = "Mean Fish Catch (count)"
+  ) +
+  theme_minimal() +
+  theme(
+    strip.text = element_text(face = "italic") # Ensure facet labels are italicised
+  )
+
+```
 
