@@ -31,7 +31,12 @@ knitr::opts_chunk$set(
 
 This qmd file covers the following point 12 (Keystone exercise: Estuary Fish Survey - Data Rescue Mission) of Workshop 2 of the R for Marine Science Module.
 
-The goal is to write a single, reproducible R script (or .qmd) that ingests this mess, cleans it, joins it into a single master dataset, and produces a publication-ready visualisation of the estuary's ecology.
+The goal is to rescue and clean a messy dataset from an estuary fish survey, and then use it to explore how fish abundance changes along a salinity gradient. The exercise is structured into five phases: 
+-Ingestion and Decontamination: Cleaning and standardising the raw data, including parsing dates and handling hardware error codes.
+-The Relational Architecture: Building a relational database by merging the catch data with spatial metadata and water quality summaries.
+-The Zero-Catch Framework: Creating a complete dataset that includes zero-catch records for all combinations of site, date, and species.
+-Statistical Extraction: Summarising the data to calculate mean and standard error for fish catch and salinity across different estuary zones and species.
+-Visual Communication: Using ggplot2 to create a multi-panel plot that visualises the relationship between fish abundance and salinity for different species.
 
 ## Clear out environment
 
@@ -124,7 +129,9 @@ clean_sonde_data <- sonde_data |>
     # Parse dates into formal Date-Time objects
     timestamp = dmy_hm(timestamp),
     # Convert the -999 error codes to true NA values in the turbidity column
-    turbidity = na_if(turbidity, -999)
+    turbidity = na_if(turbidity, -999),
+    # Convert the negative values to true NA values in the salinity column
+    salinity = if_else(salinity < 0, NA, salinity)
   )
 clean_sonde_data
 ```
@@ -147,7 +154,7 @@ summary_sensor_data
 # Use a mutating join to merge your species_dictionary into your catch data, replacing the common names with accurate scientific taxonomy.
 catch_scientific_name <- clean_catch_log |>
   # Join a column with adequate scientific name for each observation in clean_catch_log
-  left_join(species_dictionary, by = join_by("species" == "common_name")) |>
+  left_join(species_dictionary, by = join_by(species == common_name)) |>
   # Replace the common names by the scientific names in the 'species' column
   mutate(
     species = scientific_name
@@ -210,10 +217,10 @@ tidy_master_df
 summary_table <- tidy_master_df |>
   group_by(zone, species) |>
   summarise(
-    mean_catch = mean(count),
+    m_catch = mean(count),
     se_catch = sd(count) / sqrt(n()),
-    mean_salinity = mean(mean_salinity, na.rm = TRUE),
-    se_salinity = sd(mean_salinity, na.rm = TRUE) / sqrt(sum(!is.na(mean_salinity))) 
+    m_salinity = mean(mean_salinity, na.rm = TRUE),
+    se_salinity = sd(mean_salinity, na.rm = TRUE) / sqrt(sum(!is.na(mean_salinity)))
   )
 summary_table
 ```
@@ -222,16 +229,17 @@ summary_table
 
 ```{r Visual Communication}
 # Create a multi-panel plot using ggplot2 and facet_wrap() to visualise how the abundance of different species changes along the salinity gradient.
-ggplot(summary_table, aes(x = mean_salinity, y = mean_catch)) +
+ggplot(summary_table, aes(x = m_salinity, y = m_catch)) +
   geom_point() +
-  geom_errorbar(aes(ymin = mean_catch - se_catch, ymax = mean_catch + se_catch), width = 0.2) +
-  facet_wrap(~ species) + # Create a separate panel for each species
+  geom_errorbar(aes(ymin = m_catch - se_catch, ymax = m_catch + se_catch), width = 0.2) +
+  geom_errorbarh(aes(xmin = m_salinity - se_salinity, xmax = m_salinity + se_salinity), height = 0.2) +
+  facet_wrap(~ species) +
   labs(
-    title = "Mean Fish Catch vs Mean Salinity",
-    x = "Mean Salinity (ppt)",
-    y = "Mean Fish Catch (count)"
+    title = "Mean Fish Catch vs Mean Salinity with Standard Errors",
+    x = "Mean Salinity (± SE)",
+    y = "Mean Fish Catch (± SE)"
   ) +
-  theme_minimal() +
+  theme_bw() +
   theme(
     strip.text = element_text(face = "italic") # Ensure facet labels are italicised
   )
