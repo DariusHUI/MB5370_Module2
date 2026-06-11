@@ -52,7 +52,7 @@ library(leaflet) # for interactive maps
 ## Loadling data
 
 ```{r load data, message=FALSE, warning=FALSE}
-data <- read_csv("../MB5370_Module2/data/workshop4/copepods_raw.csv")
+data <- read_csv("../data/workshop4/copepods_raw.csv")
 data
 ```
 
@@ -89,7 +89,7 @@ sdata <- st_as_sf(data, coords = c("longitude", "latitude"),
 crs5126 <- st_crs(5126)
 crs5126 # look at the whole CRS
 crs5126$Name # pull out just the name of the crs
-[1] "WGS 84."
+#[1] "WGS 84."
 crs5126$wkt # crs in well-known text format
 ```
 
@@ -113,9 +113,66 @@ plot(sdata)
 # Thematic maps for communication
 
 ```{r Thematic maps for communication}
+#using tmap
 
+tm1 <- tm_shape(sdata) + 
+  tm_dots(col = "richness_raw", 
+          palette = "plasma", 
+          size = 0.5, 
+          title = "Copepod richness")
+tm1
+
+tmap_save(tm1, filename = "../code/outputs/figures/Richness-map.png", 
+          width = 600, height = 600)
 ```
 
+
+# Mapping spatial polygons as layers
+
+## Loading shapefiles
+
+```{r load shapefiles}
+aus <- st_read("../data/workshop4/spatial-data/Aussie/Aussie.shp")
+aus
+
+shelf <- st_read("../data/workshop4/spatial-data/aus_shelf/aus_shelf.shp")
+shelf
+```
+
+## Mapping your polygons
+
+```{r map polygons}
+tm_shape(shelf) + 
+  tm_polygons()
+
+tm_shape(shelf, bbox = sdata) + 
+  tm_polygons() +
+  tm_shape(aus) + 
+  tm_polygons() + 
+  tm_shape(sdata) + 
+  tm_dots()
+  
+# make sure that aus, shelf and sdata are all in the same CRS before plotting together
+st_crs(aus)
+st_crs(shelf)
+st_crs(sdata)
+# transform sdata to match the others
+sdata <- st_transform(sdata, st_crs(shelf))
+```
+
+
+# Exploring t_map
+
+```{r exploring tmap}
+?tmap
+
+tmap_style("beaver")
+```
+
+
+```{r tmap vignette}
+vignette('tmap-getstarted')
+```
 
 
 
