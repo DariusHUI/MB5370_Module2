@@ -1,0 +1,122 @@
+---
+title: "R for Marine Science Workshop 4"
+author: "Darius HUISMAN"
+date: "2026-06-11"
+output: 
+ html_document:
+    code_folding: show
+    collapse: no
+    df_print: paged
+    fig_caption: yes
+    fig_height: 6
+    fig_width: 10
+    highlight: textmate
+    theme: spacelab
+    toc: yes
+    toc_float: yes
+editor_options: 
+  chunk_output_type: inline
+---
+
+```{r setup, include=FALSE}
+# Set options, housekeeping
+knitr::opts_chunk$set(
+	echo = FALSE,
+	include = TRUE,
+	message = FALSE,
+	warning = FALSE)
+```
+
+# Introduction
+
+
+
+## Clear out environment
+
+```{r housekeeping message=FALSE, warning=FALSE, include=FALSE}
+rm(list=ls())
+```
+
+## Load packages
+
+Load the packages necessary to this project
+
+```{r packages, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(sf) # simple features
+library (terra) # for raster
+library(tmap) # Thematic maps are geographical maps in which spatial data distributions are visualized
+library(leaflet) # for interactive maps
+```
+
+## Loadling data
+
+```{r load data, message=FALSE, warning=FALSE}
+data <- read_csv("../MB5370_Module2/data/workshop4/copepods_raw.csv")
+data
+```
+
+# Data exploration
+
+## Check coordinates
+
+```{r check coordinates}
+ggplot(data) + 
+  aes(x = longitude, y = latitude, color = richness_raw) +
+  geom_point()
+```
+
+## Check for other patterns
+
+```{r other patterns}
+ggplot(data, aes(x = latitude, y = richness_raw)) + 
+  stat_smooth() + 
+  geom_point()
+```
+
+
+# Getting going with maps
+
+```{r turn data into sf}
+sdata <- st_as_sf(data, coords = c("longitude", "latitude"), 
+                 crs = 5126)
+```
+
+
+# Coordinates reference system
+
+```{r coordiantes reference system}
+crs5126 <- st_crs(5126)
+crs5126 # look at the whole CRS
+crs5126$Name # pull out just the name of the crs
+[1] "WGS 84."
+crs5126$wkt # crs in well-known text format
+```
+
+
+# Feature collection (points)
+
+```{r feature collection}
+sdata
+```
+
+
+# Cartography
+
+```{r cartography}
+plot(sdata["richness_raw"])
+
+plot(sdata)
+```
+
+
+# Thematic maps for communication
+
+```{r Thematic maps for communication}
+
+```
+
+
+
+
+
